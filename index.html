@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>솔새과 동정 알고리즘(김동우)</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --card-bg: #f5f7f4;
+    --border: #cdd6c8;
+    --accent: #3f7d3f;
+    --accent-fg: #ffffff;
+    --no-btn: #8a4a4a;
+    --leaf-bg: #eef6ea;
+    --leaf-fg: #205020;
+    --muted: #666666;
+    --breadcrumb-bg: #eef1ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14161a;
+      --fg: #e8e8e8;
+      --card-bg: #20242a;
+      --border: #3a3f47;
+      --accent: #5aa15a;
+      --accent-fg: #0c1a0c;
+      --no-btn: #b06767;
+      --leaf-bg: #1c2e1c;
+      --leaf-fg: #a8e0a8;
+      --muted: #9a9a9a;
+      --breadcrumb-bg: #1c2026;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14161a;
+    --fg: #e8e8e8;
+    --card-bg: #20242a;
+    --border: #3a3f47;
+    --accent: #5aa15a;
+    --accent-fg: #0c1a0c;
+    --no-btn: #b06767;
+    --leaf-bg: #1c2e1c;
+    --leaf-fg: #a8e0a8;
+    --muted: #9a9a9a;
+    --breadcrumb-bg: #1c2026;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+  }
+  .wrap {
+    width: 100%;
+    max-width: 640px;
+    padding: 16px;
+    padding-bottom: 40px;
+  }
+  h1 {
+    font-size: 1.15rem;
+    text-align: center;
+    margin: 8px 0 14px;
+  }
+  .breadcrumb {
+    background: var(--breadcrumb-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    max-height: 140px;
+    overflow-y: auto;
+    margin-bottom: 14px;
+  }
+  .breadcrumb div { margin-bottom: 4px; line-height: 1.4; }
+  .breadcrumb b { color: var(--fg); }
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .qlabel {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .qtext {
+    font-size: 1.15rem;
+    line-height: 1.5;
+    margin-bottom: 20px;
+    word-break: keep-all;
+  }
+  .btnrow {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  button {
+    font-family: inherit;
+    font-size: 1rem;
+    border: none;
+    border-radius: 10px;
+    padding: 14px 18px;
+    cursor: pointer;
+    flex: 1;
+    min-width: 100px;
+  }
+  .btn-yes {
+    background: var(--accent);
+    color: var(--accent-fg);
+    font-weight: 600;
+  }
+  .btn-no {
+    background: var(--no-btn);
+    color: #fff;
+    font-weight: 600;
+  }
+  .btn-choice {
+    background: var(--bg);
+    border: 1.5px solid var(--accent);
+    color: var(--fg);
+    width: 100%;
+    text-align: left;
+    margin-bottom: 10px;
+    word-break: keep-all;
+  }
+  .btn-mic {
+    background: transparent;
+    border: 1.5px dashed var(--border);
+    color: var(--fg);
+    flex: 0 0 auto;
+    width: 100%;
+    margin-top: 12px;
+    font-size: 0.95rem;
+  }
+  .btn-mic.listening {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .btn-ebird {
+    display: block;
+    background: var(--accent);
+    color: var(--accent-fg);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+  .btn-reset {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    width: 100%;
+    margin-top: 16px;
+    font-size: 0.85rem;
+    padding: 10px;
+  }
+  .leaf {
+    text-align: center;
+  }
+  .leaf .species {
+    background: var(--leaf-bg);
+    color: var(--leaf-fg);
+    font-size: 1.7rem;
+    font-weight: 700;
+    padding: 26px 14px;
+    border-radius: 14px;
+    margin-bottom: 16px;
+    word-break: keep-all;
+  }
+  .mic-status {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 8px;
+    min-height: 1.2em;
+  }
+  .warn {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 18px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🐦 솔새과 동정 알고리즘(김동우)</h1>
+  <div class="breadcrumb" id="breadcrumb"></div>
+  <div class="card" id="card"></div>
+  <div class="warn">원본 도표를 옮긴 것으로, 하단 세부 분기(솔새사촌류 등)는 오독 가능성이 있습니다. 틀린 부분을 발견하면 알려주세요.</div>
+</div>
+
+<script>
+// ---------- 의사결정 트리 데이터 ----------
+const nodes = {
+  root: {
+    type: 'choice',
+    text: '날개무늬(윙바) 형태는 어떤가?',
+    options: [
+      { label: '윙바가 두 개이고, 뒤쪽 윙바가 두껍다', next: 'A_Q1' },
+      { label: '윙바가 두 개 다 얇게 있다 (또는 있는 시늉만 한다)', next: 'B_Q1' },
+      { label: '윙바가 그냥 없다', next: 'C_Q0' }
+    ]
+  },
+  // ---- A그룹 ----
+  A_Q1: { type:'yn', text:'윙바 사이가 첫째날개깃보다 어둡다.', yes:'A_Q2', no:'LEAF_버들솔새' },
+  A_Q2: { type:'yn', text:'전체적으로 노란 기운이 강하고, 허리가 노란색 또는 흰색이다.', yes:'LEAF_노랑허리솔새', no:'A_Q3' },
+  A_Q3: { type:'yn', text:'아랫부리 기부에 반점이 없다.', yes:'LEAF_히말라야산솔새', no:'A_Q4' },
+  A_Q4: { type:'yn', text:'아랫부리 기부의 노란 면적이 거의 없고, 다리가 흑갈색이다.', yes:'LEAF_연노랑눈썹솔새', no:'LEAF_노랑눈썹솔새' },
+  // ---- B그룹 ----
+  B_Q1: { type:'yn', text:'노란 기운이 강하고, 두껍고 검은 머리옆선이 있다.', yes:'LEAF_노랑배솔새', no:'B_Q2' },
+  B_Q2: { type:'yn', text:'머리와 등의 색이 비슷하다.', yes:'LEAF_쇠솔새', no:'B_Q3' },
+  B_Q3: { type:'yn', text:'아랫부리 끝에 반점이 있고, 전체적으로 갈색을 띄는 경우가 있다.', yes:'B_Q4', no:'LEAF_산솔새' },
+  B_Q4: { type:'yn', text:'"히스키, 히스키" 하는 독특한 소리를 낸다.', yes:'LEAF_사할린되솔새', no:'LEAF_되솔새' },
+  // ---- C그룹 ----
+  C_Q0: { type:'yn', text:'전체적으로 갈색 기운이 강하다.', yes:'C_Q1', no:'C_GRAY' },
+  C_Q1: { type:'yn', text:'눈썹선 앞쪽이 넓고 황갈색을 띈다.', yes:'C_Q2', no:'LEAF_솔새사촌' },
+  C_Q2: { type:'yn', text:'울음소리가 너무 소극적이다.', yes:'LEAF_쇠긴다리솔새사촌', no:'LEAF_긴다리솔새사촌' },
+  C_GRAY: { type:'yn', text:'윗면이 회갈색 기운을 띈다.', yes:'C_GRAY_O', no:'C_GRAY_X' },
+  C_GRAY_O: {
+    type:'choice',
+    text:'다음 중 해당하는 특징은?',
+    options: [
+      { label:'다리가 흑갈색이다', next:'LEAF_검은다리솔새' },
+      { label:'아랫면이 노랗다', next:'LEAF_노랑배솔새사촌' }
+    ]
+  },
+  C_GRAY_X: {
+    type:'choice',
+    text:'다음 중 해당하는 특징은?',
+    options: [
+      { label:'윗면과 가슴이 노랗다', next:'LEAF_노랑가슴솔새' },
+      { label:'가슴이 연한 황색이다', next:'LEAF_연노랑솔새' }
+    ]
+  }
+};
+
+// ---------- eBird 종 코드 매핑 (확인된 학명 기준) ----------
+const ebirdCodes = {
+  '노랑허리솔새': 'palwar5',
+  '히말라야산솔새': 'clalew1',
+  '연노랑눈썹솔새': 'humwar1',
+  '노랑눈썹솔새': 'yebwar3',
+  '버들솔새': 'grewar2',
+  '노랑배솔새': 'subwar3',
+  '쇠솔새': 'arcwar1',
+  '사할린되솔새': 'salwar1',
+  '되솔새': 'pllwar1',
+  '산솔새': 'eacwar1',
+  '솔새사촌': 'duswar',
+  '쇠긴다리솔새사촌': 'yeswar1',
+  '긴다리솔새사촌': 'radwar1',
+  '검은다리솔새': 'comchi1',
+  '노랑배솔새사촌': 'y00989',
+  '노랑가슴솔새': 'woowar',
+  '연노랑솔새': 'wlwwar'
+};
+
+function getEbirdUrl(name) {
+  const code = ebirdCodes[name];
+  if (code) return 'https://ebird.org/species/' + code;
+  return 'https://www.google.com/search?q=' + encodeURIComponent('site:ebird.org ' + name);
+}
+
+
+let history = []; // {label, answer}
+let current = 'root';
+
+const cardEl = document.getElementById('card');
+const breadcrumbEl = document.getElementById('breadcrumb');
+
+function isLeaf(id){ return id.startsWith('LEAF_'); }
+function leafName(id){ return id.replace('LEAF_',''); }
+
+function render(){
+  breadcrumbEl.innerHTML = history.length
+    ? history.map(h => `<div>${h.label} → <b>${h.answer}</b></div>`).join('')
+    : '<div>진행 상황이 여기 표시됩니다.</div>';
+
+  if (isLeaf(current)) {
+    const name = leafName(current);
+    const ebirdUrl = getEbirdUrl(name);
+    cardEl.innerHTML = `
+      <div class="leaf">
+        <div class="species">${name}</div>
+        <a class="btn-ebird" href="${ebirdUrl}" target="_blank" rel="noopener noreferrer">이버드(eBird)에서 확인하기 ↗</a>
+        <button class="btn-reset" onclick="resetAll()">처음부터 다시하기</button>
+      </div>
+    `;
+    return;
+  }
+
+  const node = nodes[current];
+
+  if (node.type === 'info') {
+    cardEl.innerHTML = `
+      <div class="qtext">${node.text}</div>
+      <button class="btn-reset" onclick="resetAll()">처음으로</button>
+    `;
+    return;
+  }
+
+  if (node.type === 'choice') {
+    let html = `<div class="qtext">${node.text}</div>`;
+    node.options.forEach((opt, i) => {
+      html += `<button class="btn-choice" onclick="choose(${i})">${opt.label}</button>`;
+    });
+    html += `<button class="btn-reset" onclick="resetAll()">처음부터</button>`;
+    cardEl.innerHTML = html;
+    return;
+  }
+
+  if (node.type === 'yn') {
+    cardEl.innerHTML = `
+      <div class="qlabel">이 특징에 해당하는가?</div>
+      <div class="qtext">${node.text}</div>
+      <div class="btnrow">
+        <button class="btn-yes" onclick="answer(true)">예 (O)</button>
+        <button class="btn-no" onclick="answer(false)">아니오 (X)</button>
+      </div>
+      <button class="btn-mic" id="micBtn" onclick="startListening()">🎤 음성으로 답하기 (예/아니오)</button>
+      <div class="mic-status" id="micStatus"></div>
+      <button class="btn-reset" onclick="resetAll()">처음부터</button>
+    `;
+    setupMic();
+  }
+}
+
+function choose(i){
+  const node = nodes[current];
+  const opt = node.options[i];
+  history.push({ label: node.text, answer: opt.label });
+  current = opt.next;
+  render();
+}
+
+function answer(isYes){
+  const node = nodes[current];
+  history.push({ label: node.text, answer: isYes ? '예' : '아니오' });
+  current = isYes ? node.yes : node.no;
+  render();
+}
+
+function resetAll(){
+  history = [];
+  current = 'root';
+  render();
+}
+
+// ---------- 음성 입력 (선택 기능) ----------
+function setupMic(){
+  const micBtn = document.getElementById('micBtn');
+  if (!micBtn) return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    micBtn.style.display = 'none';
+  }
+}
+
+function startListening(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const statusEl = document.getElementById('micStatus');
+  const micBtn = document.getElementById('micBtn');
+  if (!SR) {
+    if (statusEl) statusEl.textContent = '이 브라우저는 음성 인식을 지원하지 않습니다.';
+    return;
+  }
+  try {
+    const rec = new SR();
+    rec.lang = 'ko-KR';
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+
+    if (micBtn) micBtn.classList.add('listening');
+    if (statusEl) statusEl.textContent = '듣는 중... "예" 또는 "아니오"라고 말해보세요.';
+
+    rec.onresult = (e) => {
+      const said = e.results[0][0].transcript.trim();
+      if (statusEl) statusEl.textContent = `인식됨: "${said}"`;
+      const yesWords = ['예','네','맞다','맞아','그렇다','있다','있어','응'];
+      const noWords = ['아니오','아니요','아니다','아니야','없다','없어','틀리다'];
+      const isYes = yesWords.some(w => said.includes(w));
+      const isNo = noWords.some(w => said.includes(w));
+      if (isYes && !isNo) {
+        setTimeout(() => answer(true), 400);
+      } else if (isNo && !isYes) {
+        setTimeout(() => answer(false), 400);
+      } else {
+        if (statusEl) statusEl.textContent = `"${said}" — 예/아니오로 다시 말해주세요.`;
+      }
+    };
+    rec.onerror = () => {
+      if (statusEl) statusEl.textContent = '음성 인식 실패. 다시 시도하거나 버튼을 눌러주세요.';
+    };
+    rec.onend = () => {
+      if (micBtn) micBtn.classList.remove('listening');
+    };
+    rec.start();
+  } catch (err) {
+    if (statusEl) statusEl.textContent = '마이크를 사용할 수 없습니다.';
+  }
+}
+
+render();
+</script>
+</body>
+</html>
