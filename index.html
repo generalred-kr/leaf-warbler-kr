@@ -62,11 +62,72 @@
     padding: 16px;
     padding-bottom: 40px;
   }
-  h1 {
-    font-size: 1.15rem;
-    text-align: center;
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
     margin: 8px 0 14px;
+    flex-wrap: wrap;
   }
+  h1 {
+    font-size: 1.05rem;
+    margin: 0;
+  }
+  .tabs {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .tab-btn {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.78rem;
+    padding: 7px 12px;
+    border-radius: 999px;
+    flex: none;
+  }
+  .tab-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-fg);
+    font-weight: 600;
+  }
+  .species-list-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    color: var(--fg);
+  }
+  .species-list-item .latin {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 2px;
+  }
+  .info-row {
+    display: flex;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.92rem;
+  }
+  .info-row:last-of-type { border-bottom: none; }
+  .info-label {
+    flex: 0 0 48px;
+    color: var(--muted);
+    font-size: 0.82rem;
+    padding-top: 1px;
+  }
+  .info-value { flex: 1; line-height: 1.5; }
+  .info-value.latin { font-style: italic; }
   .breadcrumb {
     background: var(--breadcrumb-bg);
     border: 1px solid var(--border);
@@ -197,7 +258,13 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>🐦 솔새과 동정 알고리즘(김동우)</h1>
+  <div class="topbar">
+    <h1>🐦 솔새과 동정 알고리즘(김동우)</h1>
+    <div class="tabs">
+      <button id="tabId" class="tab-btn" onclick="setMode('id')">동정</button>
+      <button id="tabList" class="tab-btn" onclick="setMode('list')">종목록</button>
+    </div>
+  </div>
   <div class="breadcrumb" id="breadcrumb"></div>
   <div class="card" id="card"></div>
   <div class="warn">원본 도표를 옮긴 것으로, 하단 세부 분기(솔새사촌류 등)는 오독 가능성이 있습니다. 틀린 부분을 발견하면 알려주세요.</div>
@@ -248,6 +315,28 @@ const nodes = {
   }
 };
 
+// ---------- 종 정보 (학명 / 국내 상태 / 확인 포인트) ----------
+// 상태는 국내 관찰 빈도를 기준으로 한 대략적 분류이며, 지역·연도에 따라 다를 수 있습니다.
+const speciesInfo = {
+  '노랑허리솔새': { latin:'Phylloscopus proregulus', status:'나그네새 (통과 시기 비교적 흔함)', desc:'몸 전체에 노란 기운이 강하고 허리가 선명한 노란색이며, 정수리에 옅은 노란 줄무늬가 있다.' },
+  '히말라야산솔새': { latin:'Phylloscopus claudiae', status:'나그네새 (드묾)', desc:'연노랑눈썹솔새와 매우 비슷하나 전체적으로 색이 더 칙칙하고, 울음소리로 구분하는 경우가 많다.' },
+  '연노랑눈썹솔새': { latin:'Phylloscopus humei', status:'나그네새 (드묾)', desc:'노랑눈썹솔새보다 날개선이 흐리고 색이 더 둔하다.' },
+  '노랑눈썹솔새': { latin:'Phylloscopus inornatus', status:'나그네새 (흔함)', desc:'뚜렷한 노란 눈썹선과 두 줄의 흰 날개선이 특징이다.' },
+  '버들솔새': { latin:'Phylloscopus plumbeitarsus', status:'나그네새', desc:'노랑눈썹솔새와 비슷하나 더 크고 둔하며, 뒤쪽 날개선이 두껍다.' },
+  '노랑배솔새': { latin:'Phylloscopus ricketti', status:'미조 (매우 드묾)', desc:'아랫면 전체가 선명한 노란색으로 다른 솔새류와 쉽게 구분된다.' },
+  '쇠솔새': { latin:'Phylloscopus borealis', status:'나그네새 (흔함)', desc:'굵고 진한 부리와 뚜렷한 흰 날개선이 있으며, 울음소리가 거칠다.' },
+  '사할린되솔새': { latin:'Phylloscopus borealoides', status:'나그네새 (드묾)', desc:'되솔새와 외모가 거의 동일하며, 울음소리로만 구분 가능하다.' },
+  '되솔새': { latin:'Phylloscopus tenellipes', status:'여름철새 / 나그네새', desc:'다리가 연한 분홍빛이고, 꼬리를 아래위로 흔드는 행동이 특징이다.' },
+  '산솔새': { latin:'Phylloscopus coronatus', status:'여름철새', desc:'정수리에 옅은 줄무늬가 있고 아랫면이 흰색에 가깝다.' },
+  '솔새사촌': { latin:'Phylloscopus fuscatus', status:'나그네새 (흔함)', desc:'전체적으로 갈색 기운이 강하고, 눈썹선이 길고 뚜렷하다.' },
+  '쇠긴다리솔새사촌': { latin:'Phylloscopus armandii', status:'나그네새 (드묾)', desc:'긴다리솔새사촌과 비슷하나 더 작고, 아랫면 줄무늬가 흐리다.' },
+  '긴다리솔새사촌': { latin:'Phylloscopus schwarzi', status:'나그네새', desc:'눈썹선이 넓고 황갈색을 띠며, 다리가 튼튼하다.' },
+  '검은다리솔새': { latin:'Phylloscopus collybita', status:'미조 (매우 드묾)', desc:'유럽에 흔한 종으로, 다리가 검은색에 가깝다. 국내 기록은 드물다.' },
+  '노랑배솔새사촌': { latin:'Phylloscopus affinis', status:'미조 (매우 드묾)', desc:'아랫면이 연한 노란색을 띠고 날개선이 없다.' },
+  '노랑가슴솔새': { latin:'Phylloscopus sibilatrix', status:'미조 (매우 드묾)', desc:'윗면은 연두빛, 가슴은 노란색, 배는 흰색으로 뚜렷이 구분된다.' },
+  '연노랑솔새': { latin:'Phylloscopus trochilus', status:'미조 (매우 드묾)', desc:'검은다리솔새와 비슷하나 다리가 분홍빛이며, 꼬리를 흔들지 않는다.' }
+};
+
 // ---------- eBird 종 코드 매핑 (확인된 학명 기준) ----------
 const ebirdCodes = {
   '노랑허리솔새': 'palwar5',
@@ -279,6 +368,8 @@ function getEbirdUrl(name) {
 let history = []; // {label, answer}
 let nodeStack = []; // 이전 current 값들을 기록 (뒤로가기용)
 let current = 'root';
+let mode = 'id'; // 'id' = 동정, 'list' = 종목록
+let listDetailName = null; // 종목록에서 선택한 종 (상세 보기 중일 때)
 
 const cardEl = document.getElementById('card');
 const breadcrumbEl = document.getElementById('breadcrumb');
@@ -286,24 +377,84 @@ const breadcrumbEl = document.getElementById('breadcrumb');
 function isLeaf(id){ return id.startsWith('LEAF_'); }
 function leafName(id){ return id.replace('LEAF_',''); }
 
+function setMode(m){
+  mode = m;
+  listDetailName = null;
+  render();
+}
+
+// 종 상세 카드 (학명 / 상태 / 확인 + eBird 링크) - 동정 결과와 종목록 상세에서 공통 사용
+function buildSpeciesCardHtml(name, backButtonsHtml){
+  const info = speciesInfo[name] || {};
+  const ebirdUrl = getEbirdUrl(name);
+  return `
+    <div class="leaf">
+      <div class="species">${name}</div>
+      <div class="info-row">
+        <div class="info-label">학명</div>
+        <div class="info-value latin">${info.latin || '-'}</div>
+      </div>
+      <div class="info-row">
+        <div class="info-label">상태</div>
+        <div class="info-value">${info.status || '-'}</div>
+      </div>
+      <div class="info-row">
+        <div class="info-label">확인</div>
+        <div class="info-value">${info.desc || '-'}</div>
+      </div>
+      <a class="btn-ebird" href="${ebirdUrl}" target="_blank" rel="noopener noreferrer" style="margin-top:14px;">이버드(eBird)에서 확인하기 ↗</a>
+      ${backButtonsHtml}
+    </div>
+  `;
+}
+
+function openSpeciesFromList(name){
+  listDetailName = name;
+  render();
+}
+
 function render(){
+  document.getElementById('tabId').classList.toggle('active', mode === 'id');
+  document.getElementById('tabList').classList.toggle('active', mode === 'list');
+
+  if (mode === 'list') {
+    breadcrumbEl.innerHTML = '<div>전체 17종 목록입니다. 종을 눌러 상세 정보를 보세요.</div>';
+
+    if (listDetailName) {
+      const backBtns = `
+        <div class="btnrow">
+          <button class="btn-reset" onclick="openSpeciesFromList(null)">← 목록으로</button>
+        </div>
+      `;
+      cardEl.innerHTML = buildSpeciesCardHtml(listDetailName, backBtns);
+      return;
+    }
+
+    let html = '';
+    Object.keys(speciesInfo).forEach(name => {
+      const info = speciesInfo[name];
+      html += `<button class="species-list-item" onclick="openSpeciesFromList('${name}')">
+        ${name}<span class="latin">${info.latin}</span>
+      </button>`;
+    });
+    cardEl.innerHTML = html;
+    return;
+  }
+
+  // ---- mode === 'id' (동정) ----
   breadcrumbEl.innerHTML = history.length
     ? history.map(h => `<div>${h.label} → <b>${h.answer}</b></div>`).join('')
     : '<div>진행 상황이 여기 표시됩니다.</div>';
 
   if (isLeaf(current)) {
     const name = leafName(current);
-    const ebirdUrl = getEbirdUrl(name);
-    cardEl.innerHTML = `
-      <div class="leaf">
-        <div class="species">${name}</div>
-        <a class="btn-ebird" href="${ebirdUrl}" target="_blank" rel="noopener noreferrer">이버드(eBird)에서 확인하기 ↗</a>
-        <div class="btnrow">
-          <button class="btn-back" onclick="goBack()" ${nodeStack.length===0?"disabled":""}>이전 질문</button>
-          <button class="btn-reset" onclick="resetAll()">처음부터</button>
-        </div>
+    const backBtns = `
+      <div class="btnrow">
+        <button class="btn-back" onclick="goBack()" ${nodeStack.length===0?"disabled":""}>이전 질문</button>
+        <button class="btn-reset" onclick="resetAll()">처음부터</button>
       </div>
     `;
+    cardEl.innerHTML = buildSpeciesCardHtml(name, backBtns);
     return;
   }
 
