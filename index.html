@@ -154,14 +154,17 @@
     border-radius: 10px;
     margin-bottom: 10px;
   }
-  .btn-reset {
+  .btn-reset, .btn-back {
     background: transparent;
     border: 1px solid var(--border);
     color: var(--muted);
-    width: 100%;
     margin-top: 16px;
     font-size: 0.85rem;
     padding: 10px;
+  }
+  .btn-back:disabled {
+    opacity: 0.4;
+    cursor: default;
   }
   .leaf {
     text-align: center;
@@ -274,6 +277,7 @@ function getEbirdUrl(name) {
 
 
 let history = []; // {label, answer}
+let nodeStack = []; // 이전 current 값들을 기록 (뒤로가기용)
 let current = 'root';
 
 const cardEl = document.getElementById('card');
@@ -294,7 +298,10 @@ function render(){
       <div class="leaf">
         <div class="species">${name}</div>
         <a class="btn-ebird" href="${ebirdUrl}" target="_blank" rel="noopener noreferrer">이버드(eBird)에서 확인하기 ↗</a>
-        <button class="btn-reset" onclick="resetAll()">처음부터 다시하기</button>
+        <div class="btnrow">
+          <button class="btn-back" onclick="goBack()" ${nodeStack.length===0?"disabled":""}>이전 질문</button>
+          <button class="btn-reset" onclick="resetAll()">처음부터</button>
+        </div>
       </div>
     `;
     return;
@@ -315,7 +322,10 @@ function render(){
     node.options.forEach((opt, i) => {
       html += `<button class="btn-choice" onclick="choose(${i})">${opt.label}</button>`;
     });
-    html += `<button class="btn-reset" onclick="resetAll()">처음부터</button>`;
+    html += `<div class="btnrow">
+      <button class="btn-back" onclick="goBack()" ${nodeStack.length===0?"disabled":""}>이전 질문</button>
+      <button class="btn-reset" onclick="resetAll()">처음부터</button>
+    </div>`;
     cardEl.innerHTML = html;
     return;
   }
@@ -330,7 +340,10 @@ function render(){
       </div>
       <button class="btn-mic" id="micBtn" onclick="startListening()">🎤 음성으로 답하기 (예/아니오)</button>
       <div class="mic-status" id="micStatus"></div>
-      <button class="btn-reset" onclick="resetAll()">처음부터</button>
+      <div class="btnrow">
+        <button class="btn-back" onclick="goBack()" ${nodeStack.length===0?"disabled":""}>이전 질문</button>
+        <button class="btn-reset" onclick="resetAll()">처음부터</button>
+      </div>
     `;
     setupMic();
   }
@@ -339,6 +352,7 @@ function render(){
 function choose(i){
   const node = nodes[current];
   const opt = node.options[i];
+  nodeStack.push(current);
   history.push({ label: node.text, answer: opt.label });
   current = opt.next;
   render();
@@ -346,6 +360,7 @@ function choose(i){
 
 function answer(isYes){
   const node = nodes[current];
+  nodeStack.push(current);
   history.push({ label: node.text, answer: isYes ? '예' : '아니오' });
   current = isYes ? node.yes : node.no;
   render();
@@ -353,7 +368,15 @@ function answer(isYes){
 
 function resetAll(){
   history = [];
+  nodeStack = [];
   current = 'root';
+  render();
+}
+
+function goBack(){
+  if (nodeStack.length === 0) return;
+  current = nodeStack.pop();
+  history.pop();
   render();
 }
 
